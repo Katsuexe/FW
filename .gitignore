@@ -1,2 +1,5 @@
 WorkSpace/
 tomcat.zip
+target/
+framework/target/
+test-webapp/target/
