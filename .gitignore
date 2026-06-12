@@ -3,3 +3,9 @@ tomcat.zip
 target/
 framework/target/
 test-webapp/target/
+.vscode/
+.idea/
+*.class
+*.war
+*.jar
+.DS_Store
