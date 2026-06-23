@@ -1,4 +1,4 @@
-package com.example.servlet;
+package rindra.framework.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
