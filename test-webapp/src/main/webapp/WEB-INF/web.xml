@@ -5,10 +5,10 @@
 
     <servlet>
         <servlet-name>FrontController</servlet-name>
-        <servlet-class>com.example.servlet.FrontControllerServlet</servlet-class>
+        <servlet-class>rindra.framework.servlet.FrontControllerServlet</servlet-class>
         <init-param>
             <param-name>packageToScan</param-name>
-            <param-value>com.example</param-value>
+            <param-value>rindra.framework</param-value>
         </init-param>
     </servlet>
 
