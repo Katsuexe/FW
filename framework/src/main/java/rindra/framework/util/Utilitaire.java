@@ -9,12 +9,10 @@ import rindra.framework.model.Mapping;
 import rindra.framework.model.UrlKey;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
 
 public class Utilitaire {
-    public static Map<UrlKey, Mapping> scanPaths(String packageToScan) {
-        Map<UrlKey, Mapping> urlList = new HashMap<>();
+    public static void scanPaths(String packageToScan, Map<UrlKey, Mapping> map) {
         ClassGraph cg = new ClassGraph().enableClassInfo().enableAnnotationInfo();
         if (packageToScan != null && !packageToScan.trim().isEmpty()) {
             cg.acceptPackages(packageToScan);
@@ -29,16 +27,15 @@ public class Utilitaire {
                         String[] httpMethods = urlMapping.method();
                         for (String httpMethod : httpMethods) {
                             UrlKey key = new UrlKey(url, httpMethod);
-                            if (urlList.containsKey(key)) {
-                                Mapping existing = urlList.get(key);
+                            if (map.containsKey(key)) {
+                                Mapping existing = map.get(key);
                                 throw new IllegalStateException("Doublon de route d├⌐tect├⌐ pour l'URL " + url + " avec le verbe " + key.getHttpMethod() + ". M├⌐thodes en conflit : " + existing.getClassName() + "." + existing.getMethod() + "() et " + clazz.getName() + "." + method.getName() + "()");
                             }
-                            urlList.put(key, new Mapping(clazz.getName(), method.getName()));
+                            map.put(key, new Mapping(clazz.getName(), method.getName()));
                         }
                     }
                 }
             }
         }
-        return urlList;
     }
 }
