@@ -3,13 +3,14 @@
          xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
          version="5.0">
 
+    <context-param>
+        <param-name>packageToScan</param-name>
+        <param-value>rindra.framework</param-value>
+    </context-param>
+
     <servlet>
         <servlet-name>FrontController</servlet-name>
         <servlet-class>rindra.framework.servlet.FrontControllerServlet</servlet-class>
-        <init-param>
-            <param-name>packageToScan</param-name>
-            <param-value>rindra.framework</param-value>
-        </init-param>
     </servlet>
 
     <servlet-mapping>
