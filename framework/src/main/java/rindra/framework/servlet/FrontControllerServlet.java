@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import rindra.framework.model.Mapping;
 import rindra.framework.model.UrlKey;
-import rindra.framework.util.Utilitaire;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -21,10 +20,13 @@ public class FrontControllerServlet extends HttpServlet {
     private Map<UrlKey, Mapping> urlList = new HashMap<>();
 
     @Override
+    @SuppressWarnings("unchecked")
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        String packageToScan = config.getInitParameter("packageToScan");
-        urlList = Utilitaire.scanPaths(packageToScan);
+        urlList = (Map<UrlKey, Mapping>) config.getServletContext().getAttribute("urlList");
+        if (urlList == null) {
+            System.err.println("Erreur: urlList est null dans le FrontControllerServlet. Le InitListener a-t-il bien ├⌐t├⌐ ex├⌐cut├⌐ ?");
+        }
     }
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
