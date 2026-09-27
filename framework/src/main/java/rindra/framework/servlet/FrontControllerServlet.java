@@ -1,10 +1,12 @@
 package rindra.framework.servlet;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import rindra.framework.annotation.ResponseBody;
 import rindra.framework.helper.ViewRenderer;
 import rindra.framework.model.Mapping;
 import rindra.framework.model.ModelAndView;
@@ -21,6 +23,7 @@ import java.util.Map;
 
 public class FrontControllerServlet extends HttpServlet {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private Map<UrlKey, Mapping> urlList = new HashMap<>();
 
     @Override
@@ -54,7 +57,15 @@ public class FrontControllerServlet extends HttpServlet {
                 Class<?> clazz = Class.forName(mapping.getClassName());
                 Object controllerInstance = clazz.getDeclaredConstructor().newInstance();
                 Method targetMethod = clazz.getDeclaredMethod(mapping.getMethod());
+                boolean apiMethod = targetMethod.isAnnotationPresent(ResponseBody.class)
+                        || mapping.isJsonResponse();
                 Object result = targetMethod.invoke(controllerInstance);
+
+                if (apiMethod && !(result instanceof String)) {
+                    response.setContentType("application/json;charset=UTF-8");
+                    objectMapper.writeValue(response.getWriter(), result);
+                    return;
+                }
 
                 if (result instanceof String textResult) {
                     buf.append("<h1>Exécution réussie : ").append(pathInfo).append(" (").append(httpMethod).append(")</h1>");
@@ -74,7 +85,7 @@ public class FrontControllerServlet extends HttpServlet {
 
                     if (renderer != null) {
                         renderer.render(request, response, viewName);
-                        return; // On arrête pour ne pas afficher le debug
+                        return;
                     } else {
                         buf.append("<p style='color:red;'>Aucun ViewRenderer trouvé pour la vue : ").append(viewName).append("</p>");
                     }
@@ -105,12 +116,12 @@ public class FrontControllerServlet extends HttpServlet {
                     buf.append("</tr>");
                 }
             }
-            
+
             if (!foundSuggestion) {
                 buf.append("<tr><td colspan='4' style='text-align:center; color: gray;'>");
                 buf.append("Aucune sous-route trouvée. Voici toutes les configurations de l'application :");
                 buf.append("</td></tr>");
-                
+
                 for (Map.Entry<UrlKey, Mapping> entry : urlList.entrySet()) {
                     buf.append("<tr>");
                     buf.append("<td><span style='background: #e5e7eb; padding: 3px 8px; border-radius: 4px; font-weight: bold;'>").append(entry.getKey().getHttpMethod()).append("</span></td>");
@@ -122,7 +133,7 @@ public class FrontControllerServlet extends HttpServlet {
             }
             buf.append("</table>");
         }
-        
+
         buf.append("</body>");
         buf.append("</html>");
 
@@ -143,7 +154,6 @@ public class FrontControllerServlet extends HttpServlet {
         processRequest(request, response);
     }
 
-    // Helper class to redirect e.printStackTrace to StringBuilder
     private static class StringBuilderWriter extends java.io.Writer {
         private final StringBuilder sb;
         public StringBuilderWriter(StringBuilder sb) { this.sb = sb; }

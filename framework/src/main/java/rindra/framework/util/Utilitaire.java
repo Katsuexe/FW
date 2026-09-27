@@ -4,6 +4,7 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
 import rindra.framework.annotation.Controller;
+import rindra.framework.annotation.ResponseBody;
 import rindra.framework.annotation.UrlMapping;
 import rindra.framework.model.Mapping;
 import rindra.framework.model.UrlKey;
@@ -25,13 +26,14 @@ public class Utilitaire {
                         UrlMapping urlMapping = method.getAnnotation(UrlMapping.class);
                         String url = urlMapping.value();
                         String[] httpMethods = urlMapping.method();
+                        boolean jsonResponse = method.isAnnotationPresent(ResponseBody.class);
                         for (String httpMethod : httpMethods) {
                             UrlKey key = new UrlKey(url, httpMethod);
                             if (map.containsKey(key)) {
                                 Mapping existing = map.get(key);
-                                throw new IllegalStateException("Doublon de route d├⌐tect├⌐ pour l'URL " + url + " avec le verbe " + key.getHttpMethod() + ". M├⌐thodes en conflit : " + existing.getClassName() + "." + existing.getMethod() + "() et " + clazz.getName() + "." + method.getName() + "()");
+                                throw new IllegalStateException("Doublon de route detecte pour l'URL " + url + " avec le verbe " + key.getHttpMethod() + ". Methodes en conflit : " + existing.getClassName() + "." + existing.getMethod() + "() et " + clazz.getName() + "." + method.getName() + "()");
                             }
-                            map.put(key, new Mapping(clazz.getName(), method.getName()));
+                            map.put(key, new Mapping(clazz.getName(), method.getName(), jsonResponse));
                         }
                     }
                 }
