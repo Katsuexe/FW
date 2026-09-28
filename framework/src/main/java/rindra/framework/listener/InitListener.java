@@ -3,10 +3,11 @@ package rindra.framework.listener;
 import java.util.HashMap;
 import java.util.Map;
 
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletContextEvent;
-import jakarta.servlet.ServletContextListener;
-import jakarta.servlet.annotation.WebListener;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
+
 import rindra.framework.model.Mapping;
 import rindra.framework.model.UrlKey;
 import rindra.framework.util.Utilitaire;
