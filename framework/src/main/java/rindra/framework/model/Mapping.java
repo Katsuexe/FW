@@ -1,5 +1,10 @@
 package rindra.framework.model;
 
+/**
+ * Représente l'association entre une route HTTP et la méthode qui la traite.
+ * Il contient le nom du contrôleur, le nom de la méthode cible et un indicateur
+ * pour savoir si la réponse doit être renvoyée en JSON.
+ */
 public class Mapping {
     private String className;
     private String method;

@@ -5,6 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Indique qu'une méthode est associée à une URL et à un ou plusieurs verbes HTTP.
+ * Exemple : @UrlMapping(value = "/hello", method = {"GET"})
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface UrlMapping {

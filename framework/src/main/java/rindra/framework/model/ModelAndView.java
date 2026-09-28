@@ -3,6 +3,10 @@ package rindra.framework.model;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Contient les données à transmettre à une vue ainsi que le nom de cette vue.
+ * C'est le conteneur utilisé pour le rendu des pages HTML/JSP.
+ */
 public class ModelAndView {
     private String view;
     private Map<String, Object> model;

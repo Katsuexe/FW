@@ -2,6 +2,10 @@ package rindra.framework.model;
 
 import java.util.Objects;
 
+/**
+ * Clé de recherche utilisée dans la map des routes.
+ * La combinaison URL + méthode HTTP permet d'identifier une route unique.
+ */
 public class UrlKey {
     private String url;
     private String httpMethod;
