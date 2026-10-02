@@ -9,3 +9,5 @@ test-webapp/target/
 *.war
 *.jar
 .DS_Store
+
+.fake
