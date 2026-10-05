@@ -21,7 +21,7 @@ public class Mapping {
     }
 
     public String getClassName() {
-        return className;
+        return this.className;
     }
 
     public void setClassName(String className) {
@@ -29,7 +29,7 @@ public class Mapping {
     }
 
     public String getMethod() {
-        return method;
+        return this.method;
     }
 
     public void setMethod(String method) {
@@ -37,7 +37,7 @@ public class Mapping {
     }
 
     public boolean isJsonResponse() {
-        return jsonResponse;
+        return this.jsonResponse;
     }
 
     public void setJsonResponse(boolean jsonResponse) {

@@ -16,7 +16,7 @@ public class UrlKey {
     }
 
     public String getUrl() {
-        return url;
+        return this.url;
     }
 
     public void setUrl(String url) {
@@ -24,7 +24,7 @@ public class UrlKey {
     }
 
     public String getHttpMethod() {
-        return httpMethod;
+        return this.httpMethod;
     }
 
     public void setHttpMethod(String httpMethod) {

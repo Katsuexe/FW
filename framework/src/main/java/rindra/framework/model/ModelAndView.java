@@ -21,11 +21,11 @@ public class ModelAndView {
     }
 
     public String getView() {
-        return view;
+        return this.view;
     }
 
     public Map<String, Object> getModel() {
-        return model;
+        return this.model;
     }
 
     public void setView(String view) {
