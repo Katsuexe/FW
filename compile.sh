@@ -9,10 +9,10 @@ echo "======================================"
 echo "    Compilation du projet complet     "
 echo "======================================"
 
-# 1. Compilation du Framework
-echo "[1/2] Compilation du Framework..."
+# 1. Compilation et installation du Framework
+echo "[1/2] Compilation et installation locale du Framework..."
 cd framework
-mvn clean compile -Dmaven.compiler.parameters=true
+mvn clean install -Dmaven.compiler.parameters=true -DskipTests
 if [ $? -ne 0 ]; then
     echo "❌ Erreur lors de la compilation du framework"
     exit 1

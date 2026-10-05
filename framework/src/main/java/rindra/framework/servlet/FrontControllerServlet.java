@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,13 +72,41 @@ public class FrontControllerServlet extends HttpServlet {
                 // Étape 3 : chargement dynamique du contrôleur et de sa méthode.
                 Class<?> clazz = Class.forName(mapping.getClassName());
                 Object controllerInstance = clazz.getDeclaredConstructor().newInstance();
-                Method targetMethod = clazz.getDeclaredMethod(mapping.getMethod());
+
+                // Sprint 7 : on recherche la méthode par son nom plutôt que par signature exacte,
+                // car certaines méthodes peuvent maintenant accepter un HttpServletRequest
+                // (pour appeler FormBinder). On ne connait pas encore les types exacts à l'avance.
+                Method targetMethod = null;
+                for (Method m : clazz.getDeclaredMethods()) {
+                    if (m.getName().equals(mapping.getMethod())) {
+                        targetMethod = m;
+                        break;
+                    }
+                }
+                if (targetMethod == null) {
+                    throw new NoSuchMethodException(
+                        "Méthode '" + mapping.getMethod() + "' introuvable dans " + clazz.getName());
+                }
 
                 // Une méthode est traitée comme API JSON si elle est annotée @ResponseBody
                 // ou si la route a été enregistrée comme réponse JSON.
                 boolean apiMethod = targetMethod.isAnnotationPresent(ResponseBody.class)
                         || mapping.isJsonResponse();
-                Object result = targetMethod.invoke(controllerInstance);
+
+                // Sprint 7 : construction du tableau d'arguments à passer à la méthode.
+                // Si l'un des paramètres est de type HttpServletRequest, on l'injecte.
+                // C'est le seul cas géré ici ; toute autre logique de binding vit dans FormBinder.
+                Parameter[] params = targetMethod.getParameters();
+                Object[] args = new Object[params.length];
+                for (int i = 0; i < params.length; i++) {
+                    if (params[i].getType().equals(HttpServletRequest.class)) {
+                        args[i] = request;
+                    } else {
+                        args[i] = null;
+                    }
+                }
+
+                Object result = targetMethod.invoke(controllerInstance, args);
 
                 // Étape 4 : si la méthode retourne un objet métier et doit être sérialisé en JSON.
                 if (apiMethod && !(result instanceof String)) {

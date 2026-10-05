@@ -9,8 +9,18 @@ echo "======================================"
 echo "       Déploiement vers Tomcat        "
 echo "======================================"
 
-# Modifiez ce chemin pour qu'il corresponde à votre installation locale de Tomcat
-TOMCAT_WEBAPPS="$HOME/Tomcat/tomcat/apache-tomcat-10.0.16/webapps"
+# Chemin Tomcat : pris depuis l'argument $1, la variable d'environnement, ou le chemin par défaut
+if [ -n "$1" ]; then
+    TOMCAT_WEBAPPS="$1"
+elif [ -z "$TOMCAT_WEBAPPS" ]; then
+    if [ -d "/var/lib/tomcat9/webapps" ]; then
+        TOMCAT_WEBAPPS="/var/lib/tomcat9/webapps"
+    elif [ -d "$HOME/Tomcat/tomcat/apache-tomcat-10.0.16/webapps" ]; then
+        TOMCAT_WEBAPPS="$HOME/Tomcat/tomcat/apache-tomcat-10.0.16/webapps"
+    else
+        TOMCAT_WEBAPPS="$HOME/apache-tomcat/webapps"
+    fi
+fi
 WAR_NAME="test-webapp.war"
 
 # 1. Packaging et installation locale du framework

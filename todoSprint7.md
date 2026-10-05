@@ -1,125 +1,93 @@
-# Guide du Sprint 7 : Binding des données (Vue → Contrôleur)
+# Guide du Sprint 7 : Binding de formulaire (Vue → Contrôleur)
 
-Ce document explique comment mettre en place la récupération automatique des données (paramètres de formulaire et fichiers uploadés) depuis la vue pour les injecter dans les méthodes des contrôleurs. Il détaille la procédure et explique le **pourquoi** de chaque changement.
+## Objectif
+Lier un formulaire HTML à une méthode de contrôleur en passant par une classe dédiée `FormBinder`.
+Champs texte uniquement. Aucune gestion de fichier.
 
-## Nouveauté : Réception complète d'objet
-Au lieu de récupérer les paramètres un par un (`String nom, String prenom`), le framework est désormais capable d'instancier un objet complexe (ex: `User user`) et de le remplir automatiquement avec les données de la requête HTTP, y compris les fichiers uploadés !
+## Flux complet
 
-## 1. Création de la classe `FileUpload`
-
-**Pourquoi cette modification ?** 
-Pour garder le contrôleur indépendant de l'API web (principe MVC), on crée notre propre modèle qui encapsule les données d'un fichier.
-
-Créer un fichier `framework/src/main/java/rindra/framework/model/FileUpload.java` :
-
-```java
-package rindra.framework.model;
-
-public class FileUpload {
-    private String name;
-    private byte[] content;
-    
-    // Getters, Setters, et Constructeurs
-}
+```
+Navigateur
+  │  POST /contact  (nom=Alice, prenom=Dupont)
+  ▼
+FrontControllerServlet
+  │  injecte HttpServletRequest dans la méthode du contrôleur
+  ▼
+TestController.contactSubmit(HttpServletRequest request)
+  │  appelle FormBinder.bind(request, "nom", "prenom")
+  ▼
+FormBinder
+  │  lit, trim, vérifie → retourne un BindingResult
+  ▼
+TestController (suite)
+  │  isValid() ? → construit le ModelAndView avec les données OU les erreurs
+  ▼
+FrontControllerServlet
+  │  injecte les attributs du ModelAndView dans la request
+  ▼
+contact.jsp
+  │  affiche le message de succès OU le formulaire avec erreurs + valeurs
+  ▼
+Navigateur
 ```
 
-## 2. Modification de `FrontControllerServlet`
+## 1. `FormBinder` (nouveau fichier — framework)
 
-Le dispatcher a été refactorisé pour supporter la création dynamique d'objets. 
+**Fichier :** `framework/src/main/java/rindra/framework/util/FormBinder.java`
 
-### A. Ajouter l'annotation `@MultipartConfig`
+**Pourquoi :** centraliser toute la logique de lecture et validation des paramètres HTTP dans un seul endroit. `FrontControllerServlet` reste neutre ; le contrôleur lui-même reste déclaratif.
 
-**Pourquoi cette modification ?**
-Permet au serveur (Tomcat) de lire les requêtes `multipart/form-data`. Sans cela, la lecture des fichiers échoue.
+**Ce que fait `FormBinder.bind(request, "nom", "prenom")` :**
+1. Pour chaque nom de champ fourni, lit `request.getParameter(nom)`.
+2. Vérifie que la valeur n'est pas `null` (champ absent de la requête).
+3. Fait un `trim()` et vérifie que la valeur n'est pas vide.
+4. Stocke le résultat dans un `BindingResult` (valeurs validées + erreurs).
 
-### B. Modifier la façon dont on obtient la méthode
+**`BindingResult` expose :**
+- `isValid()` → `true` si aucune erreur
+- `getValue("nom")` → valeur nettoyée
+- `getError("nom")` → message d'erreur ou `null`
 
-On itère désormais sur `getDeclaredMethods()` au lieu de faire `getDeclaredMethod("nom")` pour pouvoir trouver une méthode même si on ne connait pas encore le type exact de ses paramètres.
+## 2. `FrontControllerServlet` (modification minimale)
 
-### C. Gérer le binding complet des paramètres
+**Fichier :** `framework/src/main/java/rindra/framework/servlet/FrontControllerServlet.java`
 
-Voici la nouvelle logique implémentée dans la méthode `processRequest` :
+**Pourquoi :** les méthodes de contrôleur peuvent maintenant prendre un `HttpServletRequest` en paramètre pour accéder à `FormBinder`. Le dispatcher doit donc l'injecter automatiquement.
 
-```java
-// ----- BINDING DES ARGUMENTS (COMPLET) -----
-Parameter[] methodParameters = targetMethod.getParameters();
-Object[] methodArgs = new Object[methodParameters.length];
-boolean isMultipart = request.getContentType() != null && request.getContentType().startsWith("multipart/form-data");
+**Ce qui a changé :**
+- Recherche de la méthode par nom (boucle) au lieu de `getDeclaredMethod(nom)` — car on ne connaît pas la signature exacte à l'avance.
+- Construction d'un tableau `args[]` : si un paramètre est de type `HttpServletRequest`, on l'y met ; sinon `null`.
+- Appel `targetMethod.invoke(controllerInstance, args)` au lieu de `invoke(controllerInstance)`.
 
-for (int i = 0; i < methodParameters.length; i++) {
-    Parameter param = methodParameters[i];
-    String paramName = param.getName(); 
-    Class<?> paramType = param.getType();
+## 3. `TestController` (démo)
 
-    if (paramType.equals(FileUpload.class)) {
-        methodArgs[i] = extractFileUpload(paramName, request, isMultipart);
-    } 
-    else if (isSimpleType(paramType)) {
-        methodArgs[i] = extractSimpleValue(paramName, paramType, request);
-    }
-    else if (!paramType.equals(HttpServletRequest.class) && !paramType.equals(HttpServletResponse.class)) {
-        // C'est un objet complexe ! On peuple ses champs avec les données de la requête
-        try {
-            Object complexObj = paramType.getDeclaredConstructor().newInstance();
-            for (java.lang.reflect.Field field : paramType.getDeclaredFields()) {
-                field.setAccessible(true);
-                String fieldName = field.getName();
-                Class<?> fieldType = field.getType();
-                
-                if (fieldType.equals(FileUpload.class)) {
-                    FileUpload f = extractFileUpload(fieldName, request, isMultipart);
-                    if (f != null) field.set(complexObj, f);
-                } else if (isSimpleType(fieldType)) {
-                    Object val = extractSimpleValue(fieldName, fieldType, request);
-                    if (val != null) {
-                        field.set(complexObj, val);
-                    }
-                }
-            }
-            methodArgs[i] = complexObj;
-        } catch (Exception e) {
-            methodArgs[i] = null;
-        }
-    }
-}
-```
+Deux routes dans `test-webapp/src/main/java/rindra/framework/TestController.java` :
 
-Pour fonctionner, ce code s'appuie sur trois nouvelles méthodes utilitaires (`isSimpleType`, `extractFileUpload`, `extractSimpleValue`) qui extraient proprement les données en vérifiant le typage (voir le code source de `FrontControllerServlet`).
+| Verbe | URL | Rôle |
+|-------|-----|------|
+| `GET` | `/contact` | Affiche le formulaire vide |
+| `POST` | `/contact` | Reçoit, valide, et réaffiche |
 
-## 3. Configuration de la compilation (CRITIQUE)
+## 4. `contact.jsp` (vue de démo)
 
-**Pourquoi cette modification ?**
-Pour optimiser, Java efface le nom des arguments (`arg0`, `arg1`). Il **faut** compiler avec l'option `-parameters` pour que le framework lise "nom" ou "prenom" et puisse lier les données HTML à l'objet Java.
+**Fichier :** `test-webapp/src/main/webapp/contact.jsp`
 
-## 4. Test (Le Contrôleur)
+La vue se charge de :
+- afficher le formulaire avec les valeurs déjà saisies (attributs `nom`, `prenom`)
+- afficher les erreurs par champ si le flag `erreur_nom` / `erreur_prenom` est présent
+- afficher un message de succès si l'attribut `success` est présent
 
-Une fois implémenté, vous pouvez tester avec ce contrôleur et cet objet `User` :
+## 5. Étapes de test
 
-```java
-public class User {
-    private String nom;
-    private String prenom;
-    private FileUpload photo;
-    // ... getters et setters
-}
+```bash
+# 1. Déployer
+./deploy.sh
 
-@Controller
-public class TestController {
-    @UrlMapping(value = "/user/save", method = {"POST"})
-    public String saveUser(User user) {
-        // L'objet "user" est automatiquement rempli !
-        return "Nom: " + user.getNom() + ", Fichier: " + user.getPhoto().getName();
-    }
-}
-```
+# 2. Accéder au formulaire
+http://localhost:8080/test-webapp/contact
 
-Et ce formulaire HTML dans votre `test-webapp` :
-
-```html
-<form action="/test-webapp/user/save" method="POST" enctype="multipart/form-data">
-    Nom: <input type="text" name="nom" /><br/>
-    Prenom: <input type="text" name="prenom" /><br/>
-    Photo: <input type="file" name="photo" /><br/>
-    <button type="submit">Enregistrer</button>
-</form>
+# 3. Cas à tester manuellement :
+#    a. Soumettre le formulaire avec nom et prénom remplis → message de succès
+#    b. Soumettre avec un champ vide → erreur sous le champ vide, valeur de l'autre champ conservée
+#    c. Soumettre avec les deux champs vides → deux erreurs affichées
 ```
